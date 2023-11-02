@@ -107,15 +107,40 @@ public class TreeEvaluator {
     resultsRepTree.sort(Comparator.comparing(TreeEvaluation::unifiedScore));
     resultsRandomTree.sort(Comparator.comparing(TreeEvaluation::unifiedScore));
 
-    // the last element has the best score
-    var bestJ48 = resultsJ48.get(resultsJ48.size() - 1);
-    var bestRepTree = resultsRepTree.get(resultsRepTree.size() - 1);
-    var bestRandomTree = resultsRandomTree.get(resultsRandomTree.size() - 1);
+    // reverse the lists in-place (see why below)
+    Collections.reverse(resultsJ48);
+    Collections.reverse(resultsRepTree);
+    Collections.reverse(resultsRandomTree);
+
+    // the first element has the best score
+    var bestJ48 = resultsJ48.get(0);
+    var bestRepTree = resultsRepTree.get(0);
+    var bestRandomTree = resultsRandomTree.get(0);
+
+    // bonus: how many other elements had the best score?
+    var bestCountJ48 = resultsJ48.stream().takeWhile((r) -> r.unifiedScore() == bestJ48.unifiedScore()).count();
+    var bestCountRepTree = resultsRepTree.stream().takeWhile((r) -> r.unifiedScore() == bestRepTree.unifiedScore()).count();
+    var bestCountRandomTree = resultsRandomTree.stream().takeWhile((r) -> r.unifiedScore() == bestRandomTree.unifiedScore()).count();
 
     System.out.println("random seed: " + randomSeed);
-    System.out.println("best J48/ score: " + bestJ48.unifiedScore() + " options: " + bestJ48.treeOptions);
-    System.out.println("best REPTree/ score: " + bestRepTree.unifiedScore() + " options: " + bestRepTree.treeOptions);
-    System.out.println("best RandomTree/ score: " + bestRandomTree.unifiedScore() + " options: " + bestRandomTree.treeOptions);
+
+    System.out.println("best J48s: " + bestCountJ48);
+    for (var i = 0; i < Math.min(10, bestCountJ48); i++) {
+      var res = resultsJ48.get(i);
+      System.out.println("score: " + res.unifiedScore() + " options: " + res.treeOptions);
+    }
+
+    System.out.println("best REPTrees: " + bestCountRepTree);
+    for (var i = 0; i < Math.min(10, bestCountRepTree); i++) {
+      var res = resultsRepTree.get(i);
+      System.out.println("score: " + res.unifiedScore() + " options: " + res.treeOptions);
+    }
+
+    System.out.println("best RandomTrees: " + bestCountRandomTree);
+    for (var i = 0; i < Math.min(10, bestCountRandomTree); i++) {
+      var res = resultsRandomTree.get(i);
+      System.out.println("score: " + res.unifiedScore() + " options: " + res.treeOptions);
+    }
   }
 
   private static TreeEvaluation getTreeEvaluation(Random rand, Instances data, Instances splitTrainingData, Instances splitTestData, Instances stratifiedTrainingData, Instances stratifiedTestData, String optionsString, Classifier baseTree, String treeType) throws Exception {
