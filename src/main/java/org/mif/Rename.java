@@ -5,11 +5,9 @@ import java.io.*;
 import java.util.ArrayList;
 
 /**
- * renames all the labels of nominal attributes to numbers, they way they
+ * renames all the labels of nominal attributes to numbers, this way they
  * appear, e.g., attribute a1 has the labels "what", "so" and "ever" are
  * renamed to "0", "1" and "2".
- *
- * @author FracPete
  */
 public class Rename {
   public static void renameLabels(String input, String output, int classIndex) throws Exception {
