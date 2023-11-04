@@ -179,7 +179,7 @@ public class TreeEvaluator {
       System.out.println("initial score: " + res.initialScore() + " final score: " + res.finalScore()
           + " training set: "+  res.trainingSet + " cross validation: " + res.crossValidation
           + " percentage split: " + res.percentageSplit + " stratified split " + res.stratifiedSplit
-          + " options: " + res.treeOptions);
+          + " size: "+ res.treeSize + " options: " + res.treeOptions);
     }
   }
 }
