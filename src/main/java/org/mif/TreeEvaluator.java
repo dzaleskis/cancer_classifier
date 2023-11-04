@@ -176,7 +176,10 @@ public class TreeEvaluator {
     System.out.println(treeType + " best: " + bestCount);
     for (var i = 0; i < Math.min(10, bestCount); i++) {
       var res = results.get(i);
-      System.out.println("initial score: " + res.initialScore() + " final score: " + res.finalScore() + " options: " + res.treeOptions);
+      System.out.println("initial score: " + res.initialScore() + " final score: " + res.finalScore()
+          + " training set: "+  res.trainingSet + " cross validation: " + res.crossValidation
+          + " percentage split: " + res.percentageSplit + " stratified split " + res.stratifiedSplit
+          + " options: " + res.treeOptions);
     }
   }
 }
