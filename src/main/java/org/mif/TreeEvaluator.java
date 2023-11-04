@@ -36,6 +36,7 @@ public class TreeEvaluator {
 
     // create training data with stratified split
     var stratifiedTrainingDataFilter = new StratifiedRemoveFolds();
+    // split into 3 folds ant take the last 2 (inverted selection)
     var trainingDataFilterOptions = Utils.splitOptions("-V -N 3 -F 1 -S " + randomSeed);
     stratifiedTrainingDataFilter.setOptions(trainingDataFilterOptions);
     stratifiedTrainingDataFilter.setInputFormat(randomizedData);
@@ -43,6 +44,7 @@ public class TreeEvaluator {
 
     // create test data with stratified split
     var stratifiedTestDataFilter = new StratifiedRemoveFolds();
+    // split into 3 folds ant take the first 1
     var testFilterDataOptions = Utils.splitOptions("-N 3 -F 1 -S " + randomSeed);
     stratifiedTestDataFilter.setOptions(testFilterDataOptions);
     stratifiedTestDataFilter.setInputFormat(randomizedData);
@@ -102,45 +104,20 @@ public class TreeEvaluator {
       }
     }
 
-    // sort the results by score
-    resultsJ48.sort(Comparator.comparing(TreeEvaluation::unifiedScore));
-    resultsRepTree.sort(Comparator.comparing(TreeEvaluation::unifiedScore));
-    resultsRandomTree.sort(Comparator.comparing(TreeEvaluation::unifiedScore));
+    // get the best results by initial metric
+    var initialBestJ48 = TreeEvaluator.takeBestResults(resultsJ48, Comparator.comparing(TreeEvaluation::initialScore));
+    var initialBestRepTree = TreeEvaluator.takeBestResults(resultsRepTree, Comparator.comparing(TreeEvaluation::initialScore));
+    var initialBestRandomTree = TreeEvaluator.takeBestResults(resultsRandomTree, Comparator.comparing(TreeEvaluation::initialScore));
 
-    // reverse the lists in-place (see why below)
-    Collections.reverse(resultsJ48);
-    Collections.reverse(resultsRepTree);
-    Collections.reverse(resultsRandomTree);
-
-    // the first element has the best score
-    var bestJ48 = resultsJ48.get(0);
-    var bestRepTree = resultsRepTree.get(0);
-    var bestRandomTree = resultsRandomTree.get(0);
-
-    // bonus: how many other elements had the best score?
-    var bestCountJ48 = resultsJ48.stream().takeWhile((r) -> r.unifiedScore() == bestJ48.unifiedScore()).count();
-    var bestCountRepTree = resultsRepTree.stream().takeWhile((r) -> r.unifiedScore() == bestRepTree.unifiedScore()).count();
-    var bestCountRandomTree = resultsRandomTree.stream().takeWhile((r) -> r.unifiedScore() == bestRandomTree.unifiedScore()).count();
+    // get the best results by final metric
+    var bestJ48 = TreeEvaluator.takeBestResults(initialBestJ48, Comparator.comparing(TreeEvaluation::finalScore));
+    var bestRepTree = TreeEvaluator.takeBestResults(initialBestRepTree, Comparator.comparing(TreeEvaluation::finalScore));
+    var bestRandomTree = TreeEvaluator.takeBestResults(initialBestRandomTree, Comparator.comparing(TreeEvaluation::finalScore));
 
     System.out.println("random seed: " + randomSeed);
-
-    System.out.println("best J48s: " + bestCountJ48);
-    for (var i = 0; i < Math.min(10, bestCountJ48); i++) {
-      var res = resultsJ48.get(i);
-      System.out.println("score: " + res.unifiedScore() + " options: " + res.treeOptions);
-    }
-
-    System.out.println("best REPTrees: " + bestCountRepTree);
-    for (var i = 0; i < Math.min(10, bestCountRepTree); i++) {
-      var res = resultsRepTree.get(i);
-      System.out.println("score: " + res.unifiedScore() + " options: " + res.treeOptions);
-    }
-
-    System.out.println("best RandomTrees: " + bestCountRandomTree);
-    for (var i = 0; i < Math.min(10, bestCountRandomTree); i++) {
-      var res = resultsRandomTree.get(i);
-      System.out.println("score: " + res.unifiedScore() + " options: " + res.treeOptions);
-    }
+    TreeEvaluator.printResults(bestJ48, "J48");
+    TreeEvaluator.printResults(bestRepTree, "RepTree");
+    TreeEvaluator.printResults(bestRandomTree, "RandomTree");
   }
 
   private static TreeEvaluation getTreeEvaluation(Random rand, Instances data, Instances splitTrainingData, Instances splitTestData, Instances stratifiedTrainingData, Instances stratifiedTestData, String optionsString, Classifier baseTree, String treeType) throws Exception {
@@ -175,13 +152,31 @@ public class TreeEvaluator {
     stratifiedSplitEval.evaluateModel(stratifiedSplitTree, stratifiedTestData);
     var stratifiedSplitScore = stratifiedSplitEval.pctCorrect() / 100;
 
-    var evaluation =  new TreeEvaluation(
+    var evaluation = new TreeEvaluation(
         trainingSetScore, crossValidationScore, stratifiedSplitScore, percentageSplitScore, ((PartitionGenerator) trainingSetTree).numElements(), optionsString
     );
 
-//    System.out.println(treeType + " " + optionsString);
-//    System.out.println("unified score " + evaluation.unifiedScore());
+    System.out.println(treeType + " " + optionsString);
 
     return evaluation;
+  }
+
+  private static List<TreeEvaluation> takeBestResults(List<TreeEvaluation> results, Comparator<TreeEvaluation> comparator) {
+    // sort the list by score (in descending score order)
+    var list = results.stream().sorted(comparator.reversed()).toList();
+    // first element has the best score
+    var bestItem = list.get(0);
+    // take all elements that also have the best score
+    return list.stream().takeWhile(item -> comparator.compare(item, bestItem) == 0).toList();
+  }
+
+  private static void printResults(List<TreeEvaluation> results, String treeType) {
+    var bestCount = results.size();
+
+    System.out.println(treeType + " best: " + bestCount);
+    for (var i = 0; i < Math.min(10, bestCount); i++) {
+      var res = results.get(i);
+      System.out.println("initial score: " + res.initialScore() + " final score: " + res.finalScore() + " options: " + res.treeOptions);
+    }
   }
 }
